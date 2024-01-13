@@ -1,0 +1,49 @@
+import json
+import requests_cache
+import requests
+import time
+
+
+api_key = '' # personal key
+user_name = ''
+ 
+def lastfm_get(data):
+
+    headers = {'user-name': user_name}
+    url = 'https://ws.audioscrobbler.com/2.0/'
+    data['api_key'] = api_key
+    data['format'] = 'json'
+
+    response = requests.get(url, headers, data)
+    return response
+
+requests_cache.install_cache()
+page = 1
+total_pages = 5000 
+
+while page <= total_pages:
+    data= {'method': 'chart.gettopartists','limit': 100,'page': page}
+
+    print("Requesting page {}/{}".format(page, total_pages))
+    response = lastfm_get(data)
+    if response.status_code != 200:
+        print(response.text)
+        break
+
+    page = int(response.json()['artists']['@attr']['page'])
+
+    with open("requests.json" , 'r') as read_file:
+        existing_data = json.loads(read_file.read())
+    read_file.close()
+
+    existing_data.append(response.json())
+    with open("requests.json" , 'w') as write_file:
+        write_file.write( json.dumps(existing_data))
+    write_file.close()
+
+    if not getattr(response, 'from_cache', False):
+        time.sleep(0.25)
+
+    page += 1
+
+
